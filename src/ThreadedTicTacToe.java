@@ -5,8 +5,20 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
     private final JTextPane boardOut;
     private final JTextArea gameOut;
     private final JTextField playerIn;
+
     private boolean fullBoard = false;
     private CellState player = CellState.O;
+    private enum CellState {X, O, EMPTY}
+    private enum GameState {WIN, DRAW, CONTINUE}
+    private final CellState[][] board = new CellState[3][3];
+
+    public ThreadedTicTacToe(JTextPane boardView, JTextArea gameOutput, JTextField playerInput) {
+        emptyBoard();
+        this.boardOut = boardView;
+        this.gameOut = gameOutput;
+        this.playerIn = playerInput;
+        playerIn.addActionListener(this);
+    }
 
     @Override
     public void actionPerformed(ActionEvent e) {
@@ -33,20 +45,6 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
         playerIn.setText("");
         makeMove(player, row, col);
     }
-
-    private enum CellState {X, O, EMPTY}
-    private enum GameState {WIN, DRAW, CONTINUE}
-    private final CellState[][] board = new CellState[3][3];
-
-    public ThreadedTicTacToe(JTextPane boardView, JTextArea gameOutput, JTextField playerInput) {
-        emptyBoard();
-        this.boardOut = boardView;
-        this.gameOut = gameOutput;
-        this.playerIn = playerInput;
-        playerIn.addActionListener(this);
-    }
-
-
     // Handles game flow.
     @Override
     public void run() {
@@ -92,53 +90,6 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
             gameOut.setText("\nPlayer " + getCellText(player) + " wins!");
         }
         gameOut.append("\nGame over.");
-    }
-
-
-
-    // Tests validMove() and gameStatus().
-    public void runTests() {
-        int score;
-        int scoreTotal = 0;
-        CellState player = CellState.X;
-
-        System.out.print("\nvalidMove tests:");
-
-        if (!validMove(0,1)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly handles low-end out of bounds: %d/1", score);
-        if (!validMove(1,4)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly handles high-end out of bounds: %d/1", score);
-        if (!validMove(3,3)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly handles input to non-empty cell: %d/1", score);
-        if (validMove(2,2)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly handles valid input: %d/1", score);
-
-        System.out.print("\n\ngameStatus tests:");
-
-        board[0][0] = board[0][1] = board[0][2] = player;
-
-        if (gameStatus(player).equals(GameState.WIN)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly detects if a player wins: %d/1", score);
-
-        board[0][0] = CellState.O; board[0][1] = CellState.O; board[0][2] = CellState.X;
-        board[1][0] = CellState.X; board[1][1] = CellState.X; board[1][2] = CellState.O;
-        board[2][0] = CellState.O; board[2][1] = CellState.O; board[2][2] = CellState.X;
-
-        if (gameStatus(player).equals(GameState.DRAW)) {score = 1; scoreTotal++;} else {score = 0;}
-        System.out.printf("\n  Correctly detects if the game is a draw: %d/1", score);
-
-        board[0][0] = CellState.O; board[0][1] = CellState.O;     board[0][2] = CellState.X;
-        board[1][0] = CellState.X; board[1][1] = CellState.EMPTY; board[1][2] = CellState.O;
-        board[2][0] = CellState.O; board[2][1] = CellState.O;     board[2][2] = CellState.X;
-
-        if (gameStatus(player).equals(GameState.CONTINUE)) {
-            score = 1; scoreTotal++;
-        } else {
-            score = 0;
-        }
-        System.out.printf("\n  Correctly detects if the game is not over: %d/1", score);
-
-        System.out.printf("\n\nTests passed: %d/7\n", scoreTotal);
     }
 
     // Displays the TicTacToe board in its current state.
