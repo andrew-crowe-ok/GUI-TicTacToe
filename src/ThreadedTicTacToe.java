@@ -5,6 +5,8 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
     private final JTextPane boardOut;
     private final JTextArea gameOut;
     private final JTextField playerIn;
+    private int row = -1;
+    private int col = -1;
 
     private boolean fullBoard = false;
     private CellState player = CellState.O;
@@ -22,24 +24,25 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        int row = -1;
-        int col = -1;
-        String s;
+        String s = e.getActionCommand();
 
-        try {
-            s = e.getActionCommand();
-            row = Integer.parseInt(s);
-        } catch (NumberFormatException formatException) {
-            makeMove(player, -1, -1);
+        if (row == -1) {
+            try {
+                row = Integer.parseInt(s);
+            } catch (NumberFormatException formatException) {
+                // Invalid input
+                // Return?
+            }
+            gameOut.append(row);
+            gameOut.append("\nEnter column 1, 2, or 3.");
         }
-
-        gameOut.append("\nEnter column 1, 2, or 3.");
-
-        try {
-            s = e.getActionCommand();
-            col = Integer.parseInt(s);
-        } catch (NumberFormatException formatException) {
-            makeMove(player, -1, -1);
+        else if (row != -1 && col == -1) {
+            try {
+                col = Integer.parseInt(s);
+            } catch (NumberFormatException formatException) {
+                // Invalid input
+                // Return?
+            }
         }
 
         playerIn.setText("");
@@ -265,19 +268,4 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
     public String getTextFieldInput() {
         return playerIn.getText();
     }
-
-    public String processInput() {
-        String text = getTextFieldInput();
-        return text;
-    }
-
-    /*
-    private static class EnterListener implements ActionListener {
-        @Override
-        public void actionPerformed(ActionEvent e) {
-
-        }
-    }
-
-     */
 }
