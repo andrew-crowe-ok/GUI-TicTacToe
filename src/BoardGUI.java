@@ -13,7 +13,7 @@ public class BoardGUI extends JFrame {
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         pack();
 
-        ThreadedTicTacToe game1 = new ThreadedTicTacToe(boardView,gameOutput,playerInput);
-        game1.start();
+        TicTacToe game1 = new TicTacToe(boardView,gameOutput,playerInput);
+        game1.startGame();
     }
 }

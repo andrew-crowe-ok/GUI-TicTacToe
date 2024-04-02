@@ -1,101 +1,80 @@
 import javax.swing.*;
 import java.awt.event.*;
 
-public class ThreadedTicTacToe extends Thread implements ActionListener {
+public class TicTacToe implements ActionListener {
     private final JTextPane boardOut;
     private final JTextArea gameOut;
     private final JTextField playerIn;
-    private int row = -1;
-    private int col = -1;
 
-    private boolean fullBoard = false;
-    private CellState player = CellState.O;
-    private enum CellState {X, O, EMPTY}
     private enum GameState {WIN, DRAW, CONTINUE}
+
+    private enum CellState {X, O, EMPTY}
+    private CellState player = CellState.X;
     private final CellState[][] board = new CellState[3][3];
 
-    public ThreadedTicTacToe(JTextPane boardView, JTextArea gameOutput, JTextField playerInput) {
-        emptyBoard();
+    private int row = -1;
+    private int col = -1;
+    private boolean fullBoard = false;
+
+    public TicTacToe(JTextPane boardView, JTextArea gameOutput, JTextField playerInput) {
+        resetBoard();
         this.boardOut = boardView;
         this.gameOut = gameOutput;
         this.playerIn = playerInput;
         playerIn.addActionListener(this);
     }
 
+    // Controls game flow.
     @Override
     public void actionPerformed(ActionEvent e) {
         String s = e.getActionCommand();
+        boolean gameOver = getGameStatus().equals(GameState.WIN) || getGameStatus().equals(GameState.DRAW);
 
-        if (row == -1) {
+        if (gameOver && s.equals("go")) {
+            resetBoard();
+            startGame();
+        }
+        else if (gameOver && s.equals("end")) {
+            System.exit(0);
+        }
+        else if (row == -1) {
+            gameOut.append(s);
             try {
                 row = Integer.parseInt(s);
-            } catch (NumberFormatException formatException) {
-                // Invalid input
-                // Return?
             }
-            gameOut.append(row);
-            gameOut.append("\nEnter column 1, 2, or 3.");
+            catch (NumberFormatException formatException) {
+                invalidMove();
+                return;
+            }
+            gameOut.append("\nEnter column 1, 2, or 3: ");
         }
-        else if (row != -1 && col == -1) {
+        else if (col == -1) {
+            gameOut.append(s);
             try {
                 col = Integer.parseInt(s);
-            } catch (NumberFormatException formatException) {
-                // Invalid input
-                // Return?
+            }
+            catch (NumberFormatException formatException) {
+                invalidMove();
+                return;
+            }
+            if (validMove()) {
+                makeMove();
+            }
+            else {
+                invalidMove();
             }
         }
-
         playerIn.setText("");
-        makeMove(player, row, col);
     }
-    // Handles game flow.
-    @Override
-    public void run() {
+
+    // Outputs text for the beginning of a match.
+    public void startGame() {
         printBoard();
-
-        while (gameStatus(player).equals(GameState.CONTINUE)) {
-            player = changePlayer(player);
-            gameOut.setText("\nPlayer " + getCellText(player) + "'s turn.");
-
-            gameOut.append("\nEnter row 1, 2, or 3.");
-
-            try {
-                this.wait();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-            /*
-            try {
-                gameOut.append("\nEnter row 1, 2, or 3.");
-                String r = getTextFieldInput();
-                gameOut.append("\nEnter column 1, 2, or 3.");
-                String c = playerIn.getText();
-                int row = Integer.parseInt(r);
-                int col = Integer.parseInt(c);
-                makeMove(player, row, col);
-            } catch (NumberFormatException e) {
-                makeMove(player, -1, -1);
-            }
-
-             */
-            printBoard();
-        }
-
-        if (gameStatus(player).equals(GameState.DRAW)) {
-            gameOut.setText("Draw. ");
-        }
-
-        if (
-                gameStatus(player).equals(GameState.WIN)
-                        || gameStatus(changePlayer(player)).equals(GameState.WIN)
-        )
-        {
-            gameOut.setText("\nPlayer " + getCellText(player) + " wins!");
-        }
-        gameOut.append("\nGame over.");
+        gameOut.setText("\nPlayer " + getCellText(player) + "'s turn.");
+        gameOut.append("\nEnter row 1, 2, or 3: ");
     }
 
-    // Displays the TicTacToe board in its current state.
+    // Displays the board in its current state.
     public void printBoard() {
         String[] cells = {
                 getCellText(board[0][0]),getCellText(board[0][1]),getCellText(board[0][2]),
@@ -104,16 +83,18 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
         };
 
         // https://docs.oracle.com/en/java/javase/15/text-blocks/index.html
-        String board = ("\n" +
-                "              |              |\n" +
-                "           %s  |       %s      |   %s\n" +
-                "_______|_______|_______\n" +
-                "              |              |\n" +
-                "           %s  |       %s     |   %s\n" +
-                "_______|_______|_______\n" +
-                "              |              |\n" +
-                "           %s  |       %s      |   %s\n" +
-                "              |              |\n").formatted(
+        String board = ("""
+
+                              |              |
+                           %s  |       %s      |   %s
+                _______|_______|_______
+                              |              |
+                           %s  |       %s     |   %s
+                _______|_______|_______
+                              |              |
+                           %s  |       %s      |   %s
+                              |              |
+                """).formatted(
                 cells[0],cells[1],cells[2],
                 cells[3],cells[4],cells[5],
                 cells[6],cells[7],cells[8]
@@ -122,7 +103,7 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
     }
 
     // Determines if a move is acceptable.
-    private boolean validMove(int row, int col) {
+    private boolean validMove() {
         if (row <= 0 || row >= 4) {return false;}
         else if (col <= 0 || col >= 4) {return false;}
         else return board[row - 1][col - 1].equals(CellState.EMPTY);
@@ -231,10 +212,31 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
         return " ";
     }
 
-    // Sets the board to an empty state.
-    private void emptyBoard() {
+    // Returns the current status of the game.
+    private GameState getGameStatus() {
+        return gameStatus(player);
+    }
+
+    // Outputs text for invalid move.
+    private void invalidMove() {
+        gameOut.append("\nInvalid move. Try again.");
+        gameOut.append("\n\nEnter row 1, 2, or 3: ");
+        row = col = -1;
+    }
+    
+    // Outputs text for the end of a match.
+    private void postGame() {
+        gameOut.append("\nGame over.");
+        gameOut.append("\nTo play again, type \"go\" and press the Enter key.");
+        gameOut.append("\nTo exit, type \"end\" and press the Enter key.");
+    }
+
+    // Resets board.
+    private void resetBoard() {
+        row = col = -1;
+        
         this.board[0][0] = CellState.EMPTY; this.board[0][1] = CellState.EMPTY; this.board[0][2] = CellState.EMPTY;
-        this.board[1][0] = CellState.EMPTY; this.board[1][1] = CellState.X; this.board[1][2] = CellState.EMPTY;
+        this.board[1][0] = CellState.EMPTY; this.board[1][1] = CellState.EMPTY; this.board[1][2] = CellState.EMPTY;
         this.board[2][0] = CellState.EMPTY; this.board[2][1] = CellState.EMPTY; this.board[2][2] = CellState.EMPTY;
     }
 
@@ -246,26 +248,28 @@ public class ThreadedTicTacToe extends Thread implements ActionListener {
         return CellState.X;
     }
 
-    // Loops until a valid move is played and applies valid move to board.
-    private void makeMove(CellState player, int row, int col) {
-
-        while (!validMove(row, col)) {
-            try {
-                gameOut.setText("\nInvalid move.");
-                gameOut.append("\nEnter row 1, 2, or 3.");
-                String r = playerIn.getText();
-                gameOut.append("\nEnter column 1, 2, or 3.");
-                String c = playerIn.getText();
-                row = Integer.parseInt(r);
-                col = Integer.parseInt(c);
-            } catch (NumberFormatException e) {
-                row = col = -1;
-            }
-        }
+    // Applies valid move to board, continues game flow.
+    private void makeMove() {
         this.board[row-1][col-1] = player;
-    }
+        printBoard();
+        row = col = -1;
 
-    public String getTextFieldInput() {
-        return playerIn.getText();
+        if (getGameStatus().equals(GameState.CONTINUE)) {
+            player = changePlayer(player);
+            gameOut.setText("\nPlayer " + getCellText(player) + "'s turn.");
+            gameOut.append("\nEnter column 1, 2, or 3: ");
+        }
+        else if (
+                getGameStatus().equals(GameState.WIN)
+                || gameStatus(changePlayer(player)).equals(GameState.WIN)
+        )
+        {
+            gameOut.setText("\nPlayer " + getCellText(player) + " wins!");
+            postGame();
+        }
+        else {
+            gameOut.setText("Draw. ");
+            postGame();
+        }
     }
 }
